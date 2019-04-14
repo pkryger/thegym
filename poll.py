@@ -1,6 +1,5 @@
 import argparse
 import pendulum
-import pyjq
 import requests
 import sys
 
@@ -48,12 +47,9 @@ data = {
 
 resp = requests.post(url, headers=headers, data=data)
 
-available = [pyjq.first('.sessions[] '
-                        '| select(.startTime == "{}") '
-                        '| select(.bookedMax - .capacityBooked > 0)' \
-                        .format(date),
-                        resp.json())
-             for date in dates]
+available = [s for s in resp.json()['sessions']
+             if s['startTime'] in dates \
+             and s['bookedMax'] - s['capacityBooked']]
 
 missingDates = [d for d in dates
                 if d not in [a['startTime'] for a in available if a]]
@@ -64,7 +60,6 @@ if len(missingDates) == len(dates):
 with open(datesFile, "w") as f:
     f.write('\n'.join(missingDates))
     f.write('\n')
-
 
 available = [(a['startTime'],
               a['name'],
