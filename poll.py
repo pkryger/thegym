@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser('Check availability for classes in The Gym - Ea
 parser.add_argument('datesFile', metavar='file', type=str,
                     help='A file with dates. Each date should be in in a format '
                     'YYYY-MM-DDTHH:mm:ss, i.e., 2019-04-15T18:50:00. One per line.')
-datesFile = parser.parse_args(['/Users/pkryger/dates']).datesFile
+datesFile = parser.parse_args().datesFile
 
 with open(datesFile, "r") as f:
     datesFileContent = f.readlines()
