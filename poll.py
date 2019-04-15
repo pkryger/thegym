@@ -7,8 +7,11 @@ from netrc import netrc
 from smtplib import SMTP_SSL
 
 def get_args():
-    parser = argparse.ArgumentParser('Check availability for classes in The Gym - Ealing')
-    parser.add_argument('datesFile', metavar='file', type=str,
+    parser = argparse.ArgumentParser(prog='poll.py',
+                                     description='Check availability for classes in The Gym - Ealing')
+    parser.add_argument('--email', metavar='address', type=str, nargs='+', required=True,
+                        help='email addresses to which notifications will be sent')
+    parser.add_argument('--path', metavar='path', type=str, required=True,
                         help='A file with dates. Each date should be in in a format '
                         'YYYY-MM-DDTHH:mm:ss, i.e., 2019-04-15T18:50:00. One per line.')
     return parser.parse_args()
@@ -90,9 +93,8 @@ To book go to: https://www.thegymgroup.com/classes/?branchId=d05f12fc-924a-4940-
 Available classes:
 {}'''.format(c)
 
-def send_mail(text):
+def send_mail(text, to):
     login, _, password = netrc().authenticators('smtp.gmail.com')
-    to = [login]
     email ='''\
 From: {}
 To: {}
@@ -109,22 +111,22 @@ def do_poll(args):
     datesFile = args.datesFile
     dates = get_dates_and_update_file(datesFile)
     if not dates:
-        return 0
+        return 101
 
     sessions = get_sessions()
     if not sessions:
-        return 0
+        return 102
 
     classes, not_available = get_classes_and_not_available(dates, sessions)
     if len(not_available) == len(dates):
-        return 0
+        return 103
 
     with open(datesFile, "w") as f:
         f.write('\n'.join(not_available))
 
     text = get_text(classes)
-    send_mail(text)
-    return 1
+    send_mail(text, args.email)
+    return 0
 
 if __name__ == '__main__':
     args = get_args()
