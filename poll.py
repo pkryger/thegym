@@ -3,6 +3,9 @@ import pendulum
 import requests
 import sys
 
+from netrc import netrc
+from smtplib import SMTP_SSL
+
 def get_args():
     parser = argparse.ArgumentParser('Check availability for classes in The Gym - Ealing')
     parser.add_argument('datesFile', metavar='file', type=str,
@@ -79,18 +82,35 @@ def get_text(classes):
                    'instructor: {0[2]}, '
                    'available spots: {0[3]}'.format(c)
                    for c in classes])
-    return '''There are available classes at The Gym - Ealing
+    return '''\
+There are available classes at The Gym - Ealing
 
 To book go to: https://www.thegymgroup.com/classes/?branchId=d05f12fc-924a-4940-b35a-6be0266a077d
 
 Available classes:
 {}'''.format(c)
 
+def send_mail(text):
+    login, _, password = netrc().authenticators('smtp.gmail.com')
+    to = [login]
+    email ='''\
+From: {}
+To: {}
+Subject: Classes at The Gym - Ealing
+
+{}
+'''.format(login, ', '.join(to), text)
+    with SMTP_SSL('smtp.gmail.com', 465) as smtp:
+        smtp.ehlo()
+        smtp.login(login, password)
+        smtp.sendmail(login, to, email)
+
 def do_poll(args):
     datesFile = args.datesFile
     dates = get_dates_and_update_file(datesFile)
     if not dates:
         return 0
+
     sessions = get_sessions()
     if not sessions:
         return 0
@@ -103,7 +123,7 @@ def do_poll(args):
         f.write('\n'.join(not_available))
 
     text = get_text(classes)
-    print(text)
+    send_mail(text)
     return 1
 
 if __name__ == '__main__':
