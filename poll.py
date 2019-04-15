@@ -108,7 +108,7 @@ Subject: Classes at The Gym - Ealing
         smtp.sendmail(login, to, email)
 
 def do_poll(args):
-    datesFile = args.datesFile
+    datesFile = args.path
     dates = get_dates_and_update_file(datesFile)
     if not dates:
         return 101
