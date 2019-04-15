@@ -12,11 +12,19 @@ datesFile = parser.parse_args().datesFile
 with open(datesFile, "r") as f:
     datesFileContent = f.readlines()
 
-allDates = [d.strip() for d in datesFileContent]
+allDates = [d.strip() for d in datesFileContent if d.strip()]
 
 now = pendulum.now('Europe/London')
+def is_valid_and_after_now(date):
+    try:
+        return now < pendulum.from_format(date,
+                                          'YYYY-MM-DDTHH:mm:ss',
+                                          tz='Europe/London')
+    except ValueError:
+        return false
+
 dates = [d for d in allDates
-         if now < pendulum.from_format(d, 'YYYY-MM-DDTHH:mm:ss')]
+         if is_valid_and_after_now(d)]
 if len(dates) != len(allDates):
     with open(datesFile, "w") as f:
         f.write('\n'.join(dates))
