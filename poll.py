@@ -1,7 +1,6 @@
 import argparse
 import pendulum
 import requests
-import sys
 
 from netrc import netrc
 from smtplib import SMTP_SSL
@@ -34,6 +33,8 @@ def get_dates_and_update_file(datesFile):
     dates = [d for d in allDates
              if is_valid_and_after_now(d)]
     if len(dates) != len(allDates):
+        print('Updating {} with dates: {}'.format(datesFile,
+                                                  ', '.join(dates)))
         with open(datesFile, "w") as f:
             f.write('\n'.join(dates))
     return dates
@@ -61,6 +62,8 @@ def get_sessions():
     }
     resp = requests.post(url, headers=headers, data=data)
     if resp.status_code != 200:
+        print('Got {} status code from url {}'.format(resp.status_code,
+                                                      url))
         return None
     return resp.json()['sessions']
 
@@ -95,6 +98,9 @@ Available classes:
 
 def send_mail(text, to):
     login, _, password = netrc().authenticators('smtp.gmail.com')
+    if not login or not password:
+        raise Exception('No login/password found in netrc')
+
     email ='''\
 From: {}
 To: {}
@@ -102,6 +108,7 @@ Subject: Classes at The Gym - Ealing
 
 {}
 '''.format(login, ', '.join(to), text)
+    print('Sending e-mail to: {}'.format(', '.join(to)))
     with SMTP_SSL('smtp.gmail.com', 465) as smtp:
         smtp.ehlo()
         smtp.login(login, password)
@@ -111,24 +118,29 @@ def do_poll(args):
     datesFile = args.path
     dates = get_dates_and_update_file(datesFile)
     if not dates:
-        return 101
+        print('No dates found in {}'.format(datesFile))
+        return
 
     sessions = get_sessions()
     if not sessions:
-        return 102
+        print('No sessions found for dates: {}'.format(', '.join(dates)))
+        return
 
     classes, not_available = get_classes_and_not_available(dates, sessions)
     if len(not_available) == len(dates):
-        return 103
+        print('No available classes found for dates: {}'.format(', '.join(dates)))
+        return
 
+    print('Updating {} with dates: {}'.format(datesFile,
+                                              ', '.join(not_available)))
     with open(datesFile, "w") as f:
         f.write('\n'.join(not_available))
 
+    print('Sending e-mail with classes: {}'.format(
+        ', '.join(['{0[0]}'.format(c) for c in classes])))
     text = get_text(classes)
     send_mail(text, args.email)
-    return 0
 
 if __name__ == '__main__':
     args = get_args()
-    rc = do_poll(args)
-    sys.exit(rc)
+    do_poll(args)
